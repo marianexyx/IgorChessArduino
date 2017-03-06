@@ -4,10 +4,13 @@ bool bCoreFullDataBlock;
 char buffer;
 String strDataToSend;
 
-const int buttonPin1 = 8;
-const int buttonPin2 = 9;
-int buttonState1 = 0;
-int buttonState2 = 0;
+const int a1BtnPin(0), b2BtnPin(1), c3BtnPin(2), d4BtnPin(3); 
+const int e5BtnPin(4), f6BtnPin(5), g7BtnPin(6), h8BtnPin(7);
+const int clearButtonPin(8), startButtonPin(9), sendButtonPin(10);
+const int nLedFrom(13), nLedTo(12);
+
+int startButtonState = 0;
+int sendButtonState = 0;
 bool bWroteOnce1 = false;
 bool bWroteOnce2 = false;
 
@@ -22,16 +25,18 @@ LiquidCrystal lcd(12, 11, 5, 4, 3, 2);
 void setup()
 {
   Serial.begin(9600);
-  pinMode(13, OUTPUT);
+  pinMode(nLedFrom, OUTPUT);
+  pinMode(nLedTo, OUTPUT);
   bCoreFullDataBlock = false;
 
-  pinMode(buttonPin1, INPUT);
-  pinMode(buttonPin2, INPUT);
+  pinMode(startButtonPin, INPUT);
+  pinMode(sendButtonPin, INPUT);
 
-  digitalWrite(13, LOW);
+  digitalWrite(nLedFrom, LOW);
+  digitalWrite(nLedTo, LOW);
 
   lcd.begin(20, 4);
-  lcd.print("###$$@$$$$@$$@$@$$");
+  lcd.print("Arduino is ready.");
   lcd.display(); // Turn on the display. TODO: czy to jest obowiazkowe
 }
 
@@ -39,10 +44,10 @@ void loop()
 {
   skladajPrzychodzaceDane();
 
-  buttonState1 = digitalRead(buttonPin1);
-  buttonState2 = digitalRead(buttonPin2);
+  startButtonState = digitalRead(startButtonPin);
+  sendButtonState = digitalRead(sendButtonPin);
 
-  if (buttonState1 && !bWroteOnce1)
+  if (startButtonState && !bWroteOnce1)
   {
     if (bGameJustStarted == false)
     {
@@ -57,21 +62,21 @@ void loop()
     bWroteOnce1 = true;
     delay(20); //zabezpieczenie przed wibrowaniem przycisku przy wciskaniu
   }
-  else if (!buttonState1 && bWroteOnce1)
+  else if (!startButtonState && bWroteOnce1)
   {
     bWroteOnce1 = false;
     delay(20); //zabezpieczenie przed wibrowaniem przycisku przy wciskaniu
   }
 
-  if (buttonState2 && !bWroteOnce2)
+  if (sendButtonState && !bWroteOnce2)
   {
     Serial.write("@send$");
-    //bGameJustStarted = false;
+    //bGameJustStarted = false; //TODO:??
 
     bWroteOnce2 = true;
     delay(20); //zabezpieczenie przed wibrowaniem przycisku przy wciskaniu
   }
-  else if (!buttonState2 && bWroteOnce2)
+  else if (!sendButtonState && bWroteOnce2)
   {
     bWroteOnce2 = false;
     delay(20); //zabezpieczenie przed wibrowaniem przycisku przy wciskaniu
@@ -79,25 +84,31 @@ void loop()
 
   if (bCoreFullDataBlock == true)
   {
-    if (strDataToSend == "started")
+    if (strDataToSend == "connected")
+    {
+      lcd.clear();
+      lcd.print("Connected to core.");
+    }
+    else if (strDataToSend == "started")
     {
       bGameJustStarted = true;
+      lcd.clear();
+      lcd.print("Wcisnij start, aby rozpaczac gre.");
     }
-    else if (strDataToSend == "enemyTurn")
+    else if (strDataToSend == "IgorHasEndedMove")
     {
-      bEnemyTurn = true;
-      //TODO: niech coś się stanie
+      lcd.clear();
+      lcd.print("Wykonaj swoj ruch.");
+      ReadyForEnemysMove();
     }
     else //echo back
     {
       strDataToSend = "@echo: " + strDataToSend + "$";
       Serial.print(strDataToSend);
-      digitalWrite(13, HIGH); //zaświeć diodą
-      delay(2000);
-      digitalWrite(13, LOW);
       bCoreFullDataBlock = false;
-      strDataToSend = "";
+      //strDataToSend = "";
     }
+    strDataToSend = "";
   }
 }
 
@@ -112,5 +123,12 @@ void skladajPrzychodzaceDane()
     }
     strDataToSend += buffer;
   }
+}
+
+void ReadyForEnemysMove()
+{
+   bEnemyTurn = true;
+   //sygnał dla gracza że czekamy na wybór bierki do ruszenia
+   digitalWrite(nLedFrom, HIGH); 
 }
 
