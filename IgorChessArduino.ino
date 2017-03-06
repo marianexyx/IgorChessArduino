@@ -1,15 +1,20 @@
+#include <LiquidCrystal.h>
+
 bool bCoreFullDataBlock;
 char buffer;
 String strDataToSend;
 
-const int buttonPin1 = 2;
-const int buttonPin2 = 3;
+const int buttonPin1 = 8;
+const int buttonPin2 = 9;
 int buttonState1 = 0;
 int buttonState2 = 0;
 bool bWroteOnce1 = false;
 bool bWroteOnce2 = false;
 
 bool bGameJustStarted = false;
+bool bEnemyTurn = false; //czy gracz mozę już typwoać swój ruch
+
+LiquidCrystal lcd(12, 11, 5, 4, 3, 2);
 
 //todo: zamiast podciągać w dół rezystorami mogę podciągać w górę programowo...
 //...
@@ -24,6 +29,10 @@ void setup()
   pinMode(buttonPin2, INPUT);
 
   digitalWrite(13, LOW);
+
+  lcd.begin(20, 4);
+  lcd.print("###$$@$$$$@$$@$@$$");
+  lcd.display(); // Turn on the display. TODO: czy to jest obowiazkowe
 }
 
 void loop()
@@ -74,6 +83,11 @@ void loop()
     {
       bGameJustStarted = true;
     }
+    else if (strDataToSend == "enemyTurn")
+    {
+      bEnemyTurn = true;
+      //TODO: niech coś się stanie
+    }
     else //echo back
     {
       strDataToSend = "@echo: " + strDataToSend + "$";
@@ -99,3 +113,4 @@ void skladajPrzychodzaceDane()
     strDataToSend += buffer;
   }
 }
+
