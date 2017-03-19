@@ -1,20 +1,35 @@
-#include <LiquidCrystal.h>
+#include <Wire.h>
+#include <LiquidCrystal_I2C.h>
+#include <Keypad.h>
 
 //zmienne sklejające dane
 bool bCoreFullDataBlock = false; //czy są jakieś dane do wysłania
 char buffer;
 String strDataReceived;
 
-const int nLedFrom(16), nLedTo(17), nLedSend(18), nLedClear(19), nLedPlayer(20), nLedIgor(21);
+const int nLedTest(10);
+const int nLedFrom(1), nLedTo(1), nLedSend(1), nLedClear(1), nLedPlayer(1), nLedIgor(1);
 
-const int BtnAPin(0), BtnBPin(1), BtnCPin(2), BtnDPin(3), BtnEPin(4), BtnFPin(5), BtnGPin(6), BtnHPin(7);
-const int Btn1Pin(8), Btn2Pin(9), Btn3Pin(10), Btn4Pin(11), Btn5Pin(12), Btn6Pin(13), Btn7Pin(14), Btn8Pin(15);
-bool bBtnAState(0), bBtnBState(0), bBtnCState(0), bBtnDState(0), bBtnEState(0), bBtnFState(0), bBtnGState(0), bBtnHState(0);
-bool bBtn1State(0), bBtn2State(0), bBtn3State(0), bBtn4State(0), bBtn5State(0), bBtn6State(0), bBtn7State(0), bBtn8State(0);
-
-const int startBtnPin(9), sendBtnPin(10), clearBtnPin(8);
+const int startBtnPin(11), sendBtnPin(12), clearBtnPin(13);
 bool startBtnState(0), sendBtnState(0), clearBtnState(0);
 bool bStartOnce(0), bSendOnce(0), bClearOnce(0);
+
+const byte ROWS = 4; //four rows
+const byte COLS = 4; //four columns
+
+char hexaKeys[ROWS][COLS] = //define the cymbols on the buttons of the keypads
+{
+  {'a', 'b', 'c', 'd'},
+  {'e', 'f', 'g', 'h'},
+  {'1', '2', '3', '4'},
+  {'5', '6', '7', '8'}
+};
+
+byte rowPins  [ROWS] = {2, 3, 4, 5}; //connect to the row pinouts of the keypad
+byte colPins [COLS] = {6, 7, 8, 9}; //connect to the column pinouts of the keypad
+//initialize an instance of class NewKeypad
+Keypad customKeypad = Keypad( makeKeymap(hexaKeys), rowPins, colPins, ROWS, COLS);
+char customKey; //odczytywany wciskany przycisk
 
 bool bGameJustStarted = false;
 bool bEnemyTurn = false; //czy gracz mozę już typwoać swój ruch
@@ -23,35 +38,36 @@ bool bSendAvailable = false; //flaga sprawdzająca czy możemy wcisnąć przycis
 bool bClearAvailable = false; //flaga sprawdzająca czy jest co czyścić (czy był częściowo/całościowo wbity ruch gracza)
 bool bConfirmedReset = false; //flaga po której sprawdzamy czy gracz potwierdził to że chce zresetować istniejącą grę
 bool bPromoteAvailable = false; //flaga po ktorej sprawdzamy czy mamy do czynienia z promocja
-String strPromoteType = 0;
-String strPromotePiece = 0;
+bool bBadMove = false; //flaga po ktorej sprawdzamy czy gracz nie wyslal dopiero co błędnego zapytania o swój ruch
+String strPromoteType = "0";
+String strPromotePiece = "0";
 
 String strLetterFrom("-1"), strLetterTo("-1");
 int nDigitFrom(-1), nDigitTo(-1);
 
-LiquidCrystal lcd(12, 11, 5, 4, 3, 2);
+String strGameStatus = "";
+
+LiquidCrystal_I2C lcd(0x27, 20, 4); // set the LCD address to 0x27. lcd display: 20 chars, 4 lines
+bool bPrintOnce = false;
 
 //todo: zamiast podciągać w dół rezystorami mogę podciągać w górę programowo...
-//...
 
 void setup()
 {
   Serial.begin(9600);
   pinMode(nLedFrom, OUTPUT); pinMode(nLedTo, OUTPUT); pinMode(nLedSend, OUTPUT); pinMode(nLedClear, OUTPUT);
   pinMode(nLedPlayer, OUTPUT); pinMode(nLedIgor, OUTPUT);
+  pinMode(nLedTest, OUTPUT);
 
   pinMode(startBtnPin, INPUT); pinMode(sendBtnPin, INPUT); pinMode(clearBtnPin, INPUT);
-  pinMode(BtnAPin, INPUT); pinMode(BtnBPin, INPUT); pinMode(BtnCPin, INPUT); pinMode(BtnDPin, INPUT);
-  pinMode(BtnEPin, INPUT); pinMode(BtnFPin, INPUT); pinMode(BtnGPin, INPUT); pinMode(BtnHPin, INPUT);
-  pinMode(Btn1Pin, INPUT); pinMode(Btn2Pin, INPUT); pinMode(Btn3Pin, INPUT); pinMode(Btn4Pin, INPUT);
-  pinMode(Btn5Pin, INPUT); pinMode(Btn6Pin, INPUT); pinMode(Btn7Pin, INPUT); pinMode(Btn8Pin, INPUT);
 
   digitalWrite(nLedFrom, LOW); digitalWrite(nLedTo, LOW); digitalWrite(nLedSend, LOW); digitalWrite(nLedClear, LOW);
   digitalWrite(nLedPlayer, LOW); digitalWrite(nLedIgor, LOW);
+  digitalWrite(nLedTest, LOW);
 
-  lcd.begin(20, 4);
+  lcd.init();
+  lcd.backlight();
   lcd.print("Arduino is ready.");
-  lcd.display(); // Turn on the display.
 }
 
 void loop()
@@ -61,9 +77,12 @@ void loop()
   ledWhoseTurn();
 
   //cały czas odczytuj stan przycisków
+  customKey = customKeypad.getKey(); //odczytywany wciskany przycisk
   startBtnState = digitalRead(startBtnPin);
   sendBtnState = digitalRead(sendBtnPin);
   clearBtnState = digitalRead(clearBtnPin);
+
+  //TODO: blokada by nie dało się wcisnąć przycisków ABC...123... i funcykjnych jaks SEND jednocześnie
 
   //funkcje ktore wyslą wiadomość raz, mimo iż ich przyciski są ciągle wciśnięte
   if (bStartAvailable == true) //przycisk start da się wcisnąć tylko gdy mamy połączenie z core
@@ -72,56 +91,86 @@ void loop()
   bClearOnce = button(clearBtnState, bClearOnce, 'c');
 
   if (bEnemyTurn == true //jeżeli gracz wykonuje ruch, to czytaj kolejne stany z przycisków i reaguj na to...
-      && bPromoteAvailable = false) //...ale nie gdy mamy do czynienia z promocja
-
+      && bPromoteAvailable == false) //...ale nie gdy mamy do czynienia z promocja
   {
     //funkcje wciskania przycisków są tak zrobione, że nie trzeba ich dodatkowo zabezpieczać
-    if (strLetterFrom == "-1") strLetterFrom = lettersButtonsActivated('f'); //wprowadzenie litery pola skąd
-    else if (strLetterFrom != "-1" && nDigitFrom == -1) nDigitFrom = digitsButtonsActivated('f'); //wprowadzenie cyfry pola skąd
-    else if (nDigitFrom != -1 && strLetterFrom == "-1") strLetterTo = lettersButtonsActivated('t'); //wprowadzenie litery pola do
-    else if (strLetterTo != "-1" && nDigitTo == -1) nDigitTo = digitsButtonsActivated('t');  //wprowadzenie cyfry pola do
+    if (strGameStatus == "selectLetterFrom") strLetterFrom = lettersButtonsActivated('f'); //wprowadzenie litery pola skąd
+    else if (strGameStatus == "selectDigitFrom") nDigitFrom = digitsButtonsActivated('f'); //wprowadzenie cyfry pola skąd
+    else if (strGameStatus == "selectLetterTo") strLetterTo = lettersButtonsActivated('t'); //wprowadzenie litery pola do
+    else if (strGameStatus == "selectDigitTo") nDigitTo = digitsButtonsActivated('t');  //wprowadzenie cyfry pola do
 
-    if (strLetterFrom != "-1" && nDigitFrom != -1 && strLetterTo != "-1" && nDigitTo != -1)
+    if (strGameStatus == "moveIsReady")
     {
-      printLcd("Chcesz wykonac ruch z pola " + strLetterFrom + (String)nDigitFrom + " na pole " + strLetterTo + (String)nDigitTo
-               + ". Potwierdz wciskajac WYSLIJ, lub popraw wciskajac WYCZYSC");
+      //printLcd("12345678901234567890");
+      printLcd("Chcesz wykonac ruch",
+               "z pola " + strLetterFrom + (String)nDigitFrom + " na " + strLetterTo + (String)nDigitTo + ".",
+               //"z pola e2 na e4."
+               "Potwierdz: WYSLIJ,",
+               "lub popraw: WYCZYSC");
       bSendAvailable = true; //możemy już wciskać przycisk "send"
       digitalWrite(nLedSend, HIGH);
+      strGameStatus = "moveWaitsToBeSend";
     }
   }
 
-  if (bCoreFullDataBlock == true)
+  if (bCoreFullDataBlock == true) //odczytywanie danych po serialu z core'a
   {
-    if (strDataReceived == "connected")
+    if (strDataReceived == "started")
     {
-      bGameJustStarted = false; //prewencyjnie
-      bStartAvailable = true; //da się wcisnąć start, by móc rozpocząć grę w systemie
-      bEnemyTurn = true;
-      printLcd("Connected to core");
-    }
-    else if (strDataReceived == "started")
-    {
+      strGameStatus = strDataReceived;
       bGameJustStarted = true; //nowa gra ruszyła w pamieci. AI czeka z ruchem. wciśnięcie START rozpocznie ruch
-      bStartAvailable = true; //prewencyjnie
+      bStartAvailable = true; 
       bEnemyTurn = true;
-      printLcd("Wcisnij start, aby rozpaczac gre");
+      //printLcd("12345678901234567890");
+      printLcd("Wcisnij start, aby",
+               "rozpaczac gre");
     }
     else if (strDataReceived == "IgorHasEndedMove")
     {
+      strGameStatus = "selectLetterFrom";
       bEnemyTurn = true;
-      printLcd("Wykonaj swoj ruch");
     }
-    else if (strDataReceived == "BAD_MOVE")
+    else if (strDataReceived.substring(0, 8) == "BAD_MOVE")
     {
       bEnemyTurn = true;
-      printLcd("Nieprawidlowe zadanie ruchu. Wprowadz ruch ponownie");
+      bBadMove = true;
+      clearMove();
     }
     else if (strDataReceived == "promote")
     {
       bEnemyTurn = true; //abysmy mogl dzialac w przycisk send i by sie dioda sciecila
       bPromoteAvailable = true;
-      printLcd("Promocja piona. Przemien na: a-wieza, b-skoczek, c-goniec, d-hetman");
+      //printLcd("12345678901234567890");
+      printLcd("Promocja piona.",
+               "Przemiana na:",
+               "a-wieza, b-skoczek,",
+               "c-goniec, d-hetman");
       ledEnemysMove(true, false); //prewencyjnie
+    }
+    else if (strDataReceived.substring(0,8) == "GameOver")
+    {
+      String strWhoWon = strDataReceived.substring(9);
+      if (strWhoWon == "white_won")
+      //printLcd("12345678901234567890");
+        printLcd("Koniec gry. Oczywi-",
+                 "scie wygral Igor, tj",
+                 "biale. Wcisnij START",
+                 "by zaczac nowa gre");
+      else if (strWhoWon == "black_won")
+      //printLcd("12345678901234567890");
+        printLcd("CRITICAL ERROR: Ko-",
+                 "niec gry: czarne wy-",
+                 "graly. Wcisnij START",
+                 "by zaczac nowa gre");
+      else if (strWhoWon == "draw")
+      //printLcd("12345678901234567890");
+        printLcd("ERROR: Koniec gry:",
+                 "Remis. REBOOTING...",
+                 "Wcisnij START, by",
+                 "zaczac nowa gre");
+      else Serial.print("ERROR: wrong strWhoWon parameter");
+
+      //TODO: tu skończyłem...
     }
     else //fukcja serwisowa: echo back
     {
@@ -132,17 +181,20 @@ void loop()
     strDataReceived = "";
   }
 
-  if (bPromoteAvailable == true)
+  if (bPromoteAvailable == true) //TODO: pod nowe przyciski to ogarnąć
   {
-    if (strPromotePiece = 0) //zabezpieczenie przed mozliwascia kolejnego wcisniecia podczas potwierdzania promocji
+    if (strPromotePiece = "0") //zabezpieczenie przed mozliwascia kolejnego wcisniecia podczas potwierdzania promocji
       strPromoteType = promote(); //czekaj az gracz wcisnie przycisk odpowiadajacy promocji
-    if (strPromoteType != 0)
+    if (strPromoteType != "0")
     {
       if (strPromoteType == "a") strPromotePiece = "wieze";
       else if (strPromoteType == "b") strPromotePiece = "skoczka";
       else if (strPromoteType == "c") strPromotePiece = "gonca";
       else if (strPromoteType == "d") strPromotePiece = "hetmana";
-      printLcd("Potwierdz promocje na " + strPromotePiece + " przyciskiem WYSLIJ");
+      //printLcd("12345678901234567890");
+      printLcd("Potwierdz promocje",
+               "na " + strPromotePiece,
+               "przyciskiem WYSLIJ");
       bSendAvailable = true; //reszta odbywa sie w przycisku send (wteyd gdy go wcisniemy)
     }
   }
@@ -158,12 +210,14 @@ bool button(bool bBtnState, bool bWriteOnce, char chBtnType) //ogarniaj 3 przyci
   {
     if (bBtnState && !bWriteOnce) //wciskany przycisk uruchomi funkcję raz mimo długiego trzymania
     {
-      if (chBtnType = 't') //start button
+      if (chBtnType == 't') //start button
       {
         //jeżeli nie jesteśmy w fazie startu gry (rozgrywka trwa) i gracz chce zresetować rozgrywkę
         if (bGameJustStarted == false && bConfirmedReset == false)
         {
-          printLcd("Czy chcesz zresetować grę?");
+          //printLcd("12345678901234567890");
+          printLcd("Czy chcesz",
+                   "zresetowac gre?");
           bConfirmedReset = true;
         }
         //jeżeli nie jesteśmy w fazie startu gry (rozgrywka trwa) i gracz potwierdził chęć zresetowania rozgrywki
@@ -193,23 +247,28 @@ bool button(bool bBtnState, bool bWriteOnce, char chBtnType) //ogarniaj 3 przyci
         {
           bGameJustStarted = false; //stan gry będzie jako rozpoczęty dopiero jak wykona się jakikolwiek ruch
           bEnemyTurn = false;
+        //printLcd("12345678901234567890");
+          printLcd("Rozpoczynanie gry...");
           Serial.print("@doFirstIgorMove$"); //gra ruszyła, niech AI wykona swój pierwszy ruch
         }
       }
       else if (chBtnType == 'd' && bSendAvailable == true) //send można wysłać tylko wtedy, gdy jest gotowy ruch do wysłania
       {
-        if (strPromotePiece == 0) //jezeli to nie jest promocja
+        if (strPromotePiece == "0") //jezeli to nie jest promocja
         {
           printLcd("Wyslano ruch: " + strLetterFrom + (String)nDigitFrom + strLetterTo + (String)nDigitTo);
           Serial.print("@move " + strLetterFrom + (String)nDigitFrom + strLetterTo + (String)nDigitTo + "$"); //move e2e4
         }
         else //jezeli potwierdzamy promocje
         {
-          printLcd("Pion zostal promowany na " + strPromotePiece);
+          //printLcd("12345678901234567890");
+          printLcd("Pion zostal",
+                   "promowany na " + strPromotePiece);
+          //"promowany na hetmana"
           bPromoteAvailable = false; //koniec sytuacji promocji
-          strPromotePiece = 0; //czyscimy by nie wpadac w warunki promocji
+          strPromotePiece = "0"; //czyscimy by nie wpadac w warunki promocji
           Serial.print("promote_to " + strPromoteType);
-          strPromoteType = 0; //czyszczenie by nie wpadac w warunek pytania o promocje
+          strPromoteType = "0"; //czyszczenie by nie wpadac w warunek pytania o promocje
         }
         bEnemyTurn = false;
         bGameJustStarted = false; //prewencyjnie
@@ -220,13 +279,7 @@ bool button(bool bBtnState, bool bWriteOnce, char chBtnType) //ogarniaj 3 przyci
       }
       else if (chBtnType == 'c' && bClearAvailable == true) //czyszczenie ruchu, jeżeli cokolwiek było już wbijane
       {
-        strLetterFrom = "-1";
-        strLetterTo = "-1";
-        nDigitFrom = -1;
-        nDigitTo = -1;
-        bClearAvailable = false; //wyczyszczone. nie da się od razu ponownie wcisnąć przycisku WYCZYSC
-        digitalWrite(nLedClear, LOW);
-        ledEnemysMove(false, false); //zgaś obie diody, które pokazują czy teraz wbijany był ruch skąd, czy dokąd
+        clearMove();
       }
 
       bWriteOnce = true; //cokolwiek wciśnięto, to raz to zrobiono i wykonano, mimo iż przycisk przez jakąś chwilę będzie wciśniety
@@ -255,88 +308,157 @@ void skladajPrzychodzaceDane()
   }
 }
 
-void printLcd(String strLcdMsg)
+void printLcd(String strLcdMsg1)
 {
   lcd.clear();
-  lcd.print(strLcdMsg);
+  lcd.print(strLcdMsg1);
+  lcd.setCursor(0, 0);
+}
+
+void printLcd(String strLcdMsg1, String strLcdMsg2)
+{
+  lcd.clear();
+  lcd.print(strLcdMsg1);
+  lcd.setCursor(0, 1);
+  lcd.print(strLcdMsg2);
+  lcd.setCursor(0, 0);
+}
+
+void printLcd(String strLcdMsg1, String strLcdMsg2, String strLcdMsg3)
+{
+  lcd.clear();
+  lcd.print(strLcdMsg1);
+  lcd.setCursor(0, 1);
+  lcd.print(strLcdMsg2);
+  lcd.setCursor(0, 2);
+  lcd.print(strLcdMsg3);
+  lcd.setCursor(0, 0);
+}
+
+void printLcd(String strLcdMsg1, String strLcdMsg2, String strLcdMsg3, String strLcdMsg4)
+{
+  lcd.clear();
+  lcd.print(strLcdMsg1);
+  lcd.setCursor(0, 1);
+  lcd.print(strLcdMsg2);
+  lcd.setCursor(0, 2);
+  lcd.print(strLcdMsg3);
+  lcd.setCursor(0, 3);
+  lcd.print(strLcdMsg4);
+  lcd.setCursor(0, 0);
 }
 
 String lettersButtonsActivated(char chTargetField)
 {
-  if (chTargetField == 'f')
+  if (bPrintOnce == false)
   {
-    ledEnemysMove(true, false);
-    printLcd("Wybierz bierke ktora chcesz wykonac ruch (przyciski A-H)");
-    //jeszcze nic gracz nie wpisał, więc przycisk WYCZYSC jest ciagle nieaktywny
-  }
-  else if (chTargetField == 't')
-  {
-    bClearAvailable = true; //jest co czyścić
-    digitalWrite(nLedClear, HIGH); //dioda mówi nam o tym że można poprawić żądanie ruchu
-    ledEnemysMove(false, true);
-    printLcd("Wybierz pole na ktore chcesz przemiescic bierke (przyciski A-H)");
-  }
-  else Serial.print("chTargetField value error");
+    if (chTargetField == 'f') //dla przycisków 'from'
+    {
+      ledEnemysMove(true, false);
 
-  bBtnAState = digitalRead(BtnAPin); bBtnBState = digitalRead(BtnBPin);
-  bBtnCState = digitalRead(BtnCPin); bBtnDState = digitalRead(BtnDPin);
-  bBtnEState = digitalRead(BtnEPin); bBtnFState = digitalRead(BtnFPin);
-  bBtnGState = digitalRead(BtnGPin); bBtnHState = digitalRead(BtnHPin);
+      if (!bBadMove)
+      {
+        printLcd("Wybierz bierke ktora",
+                 "chcesz wykonac ruch",
+                 "(przyciski A-H)");
+      }
+      else
+      {
+        //printLcd("12345678901234567890");
+        printLcd("Nieprawidlowy ruch!",
+                 "Wybierz bierke ktora",
+                 "chcesz wykonac ruch",
+                 "(przyciski A-H)");
+        bBadMove = false;
+      }
 
-  if (bBtnAState == 1) return "a";
-  else if (bBtnBState == 1) return "b";
-  else if (bBtnCState == 1) return "c";
-  else if (bBtnDState == 1) return "d";
-  else if (bBtnEState == 1) return "e";
-  else if (bBtnFState == 1) return "f";
-  else if (bBtnGState == 1) return "g";
-  else if (bBtnHState == 1) return "h";
-  else
+      //jeszcze nic gracz nie wpisał, więc przycisk WYCZYSC jest ciagle nieaktywny
+    }
+    else if (chTargetField == 't') //dla przycisków 'to'
+    {
+      bClearAvailable = true; //jest co czyścić
+      digitalWrite(nLedClear, HIGH); //dioda mówi nam o tym że można poprawić żądanie ruchu
+      ledEnemysMove(false, true);
+      //printLcd("12345678901234567890");
+      printLcd("Wybierz pole na",
+               "ktore chcesz",
+               "przemiescic bierke",
+               "(przyciski A-H)");
+    }
+    else Serial.print(" -ERROR: wrong 'chTargetField' value - ");
+
+    bPrintOnce = true;
+  }
+
+  String result = "";
+  switch (customKey)
   {
-    Serial.print("BtnStates value error");
-    return "0";
+    case 'a': result = "a"; break;
+    case 'b': result = "b"; break;
+    case 'c': result = "c"; break;
+    case 'd': result = "d"; break;
+    case 'e': result = "e"; break;
+    case 'f': result = "f"; break;
+    case 'g': result = "g"; break;
+    case 'h': result = "h"; break;
+  }
+  if (result != "")
+  {
+    if (chTargetField == 'f') strGameStatus = "selectDigitFrom";
+    else if (chTargetField == 't') strGameStatus = "selectDigitTo";
+    bPrintOnce = false;
+    //digitalWrite(nLedTest, HIGH); //testowa dioda
+    return result;
   }
 }
 
 int digitsButtonsActivated(char chTargetField)
 {
-  bClearAvailable = true; //jest co czyścić
-
-  if (chTargetField == 'f')
-    printLcd("Wybierz bierke ktora chcesz wykonac ruch (przyciski 1-8)");
-  else if (chTargetField == 't')
-    printLcd("Wybierz pole na ktore chcesz przemiescic bierke (przyciski 1-8)");
-  else Serial.print("chTargetField value error");
-
-  bBtn1State = digitalRead(Btn1Pin); bBtn2State = digitalRead(Btn2Pin);
-  bBtn3State = digitalRead(Btn3Pin); bBtn4State = digitalRead(Btn4Pin);
-  bBtn5State = digitalRead(Btn5Pin); bBtn6State = digitalRead(Btn6Pin);
-  bBtn7State = digitalRead(Btn7Pin); bBtn8State = digitalRead(Btn8Pin);
-
-  if (bBtn1State == 1) return 1;
-  else if (bBtn2State == 1) return 2;
-  else if (bBtn3State == 1) return 3;
-  else if (bBtn4State == 1) return 4;
-  else if (bBtn5State == 1) return 5;
-  else if (bBtn6State == 1) return 6;
-  else if (bBtn7State == 1) return 7;
-  else if (bBtn8State == 1) return 8;
-  else
+  if (bPrintOnce == false)
   {
-    Serial.print("BtnStates value error");
-    return 0;
+    bClearAvailable = true; //jest co czyścić
+
+    if (chTargetField == 'f') //dla przycisków 'from'
+      printLcd("Wybierz bierke ktora",
+               "chcesz wykonac ruch",
+               "(przyciski 1-8)");
+    else if (chTargetField == 't') //dla przycisków 'to'
+      printLcd("Wybierz pole na",
+               "ktore chcesz",
+               "przemiescic bierke",
+               "(przyciski 1-8)");
+    else Serial.print(" -ERROR: wrong 'chTargetField' value - ");
+
+    bPrintOnce = true;
+  }
+
+  int result = 0;
+  switch (customKey)
+  {
+    case '1': result = 1; break; //return nie jest jednocześnie breakiem?
+    case '2': result = 2; break;
+    case '3': result = 3; break;
+    case '4': result = 4; break;
+    case '5': result = 5; break;
+    case '6': result = 6; break;
+    case '7': result = 7; break;
+    case '8': result = 8; break;
+  }
+  if (result > 0)
+  {
+    if (chTargetField == 'f') strGameStatus = "selectLetterTo";
+    else if (chTargetField == 't') strGameStatus = "moveIsReady";
+    bPrintOnce = false;
+    return result;
   }
 }
 
 String promote()
 {
-  bBtnAState = digitalRead(BtnAPin); bBtnBState = digitalRead(BtnBPin);
-  bBtnCState = digitalRead(BtnCPin); bBtnDState = digitalRead(BtnDPin);
-
-  if (bBtnAState == 1) return "a";
-  else if (bBtnBState == 1) return "b";
-  else if (bBtnCState == 1) return "c";
-  else if (bBtnDState == 1) return "d";
+  if (customKey == 'a') return "a";
+  else if (customKey == 'b') return "b";
+  else if (customKey == 'c') return "c";
+  else if (customKey == 'd') return "d";
 }
 
 void ledWhoseTurn() //led informujący gracza o tym czy może się ruszać (TODO: zamienić na "czekaj..." or smtg?)
@@ -358,5 +480,17 @@ void ledEnemysMove(bool ledFrom, bool ledTo) //światełka informujące o tym cz
 {
   digitalWrite(nLedFrom, ledFrom);
   digitalWrite(nLedTo, ledTo);
+}
+
+void clearMove()
+{
+  strGameStatus = "selectLetterFrom";
+  strLetterFrom = "-1";
+  strLetterTo = "-1";
+  nDigitFrom = -1;
+  nDigitTo = -1;
+  bClearAvailable = false; //wyczyszczone. nie da się od razu ponownie wcisnąć przycisku WYCZYSC
+  digitalWrite(nLedClear, LOW);
+  ledEnemysMove(false, false); //zgaś obie diody, które pokazują czy teraz wbijany był ruch skąd, czy dokąd
 }
 
