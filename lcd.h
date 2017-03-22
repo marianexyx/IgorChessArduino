@@ -12,49 +12,15 @@ void printLcd(int msg)
       //prtLcd("12345678901234567890");
       printLcd("Arduino is ready.");
       break;
-    case PRESS_START:
+    case STARTED:
       //prtLcd("12345678901234567890");
       printLcd("Wcisnij start, aby",
                "rozpaczac gre");
       break;
-    case PROMOTE_TO:
+    case CORE_START:
       //prtLcd("12345678901234567890");
-      printLcd("Promocja piona.",
-               "Przemiana na:",
-               "a-wieza, b-skoczek,",
-               "c-goniec, d-hetman");
-      break;
-    case WHITE_WON:
-      //prtLcd("12345678901234567890");
-      printLcd("Koniec gry. Oczywi-",
-               "scie wygral Igor, tj",
-               "biale. Wcisnij START",
-               "by zaczac nowa gre");
-      break;
-    case BLACK_WON:
-      //prtLcd("12345678901234567890");
-      printLcd("CRITICAL ERROR: Ko-",
-               "niec gry: czarne wy-",
-               "graly. Wcisnij START",
-               "by zaczac nowa gre");
-      break;
-    case DRAW:
-      //prtLcd("12345678901234567890");
-      printLcd("ERROR: Koniec gry:",
-               "Remis. REBOOTING...",
-               "Wcisnij START, by",
-               "zaczac nowa gre");
-      break;
-    case STARTING:
-      //prtLcd("12345678901234567890");
-      printLcd("Rozpoczynanie gry...");
-      break;
-    case BAD_MOVE:
-      //prtLcd("12345678901234567890");
-      printLcd("Nieprawidlowy ruch!",
-               "Wybierz bierke ktora",
-               "chcesz wykonac ruch",
-               "(przyciski A-H)");
+      printLcd("Gra rozpoczeta.",
+               "Prosze czekac...");
       break;
     case SELECT_LETTER_FROM:
       //prtLcd("12345678901234567890");
@@ -82,6 +48,68 @@ void printLcd(int msg)
                "przemiescic bierke",
                "(przyciski 1-8)");
       break;
+    case MOVE_IS_READY:
+      //prtLcd("12345678901234567890");
+      printLcd("Chcesz wykonac ruch",
+               "z pola " + strLetterFrom + (String)nDigitFrom +
+               " na " + strLetterTo + (String)nDigitTo + ".",
+               //"z pola e2 na e4."
+               "Potwierdz: WYSLIJ,",
+               "lub popraw: WYCZYSC");
+    case CORE_MOVE:
+      //prtLcd("12345678901234567890");
+      //prtLcd("Wyslano ruch: e2e4");
+      printLcd("Wyslano ruch: " + strLetterFrom + (String)nDigitFrom +
+               strLetterTo + (String)nDigitTo,
+               "Prosze czekac...");
+      break;
+    case BAD_MOVE:
+      //prtLcd("12345678901234567890");
+      printLcd("Nieprawidlowy ruch!",
+               "Wybierz bierke ktora",
+               "chcesz wykonac ruch",
+               "(przyciski A-H)");
+      break;
+    case ARDUINO_PROMOTE:
+      //prtLcd("12345678901234567890");
+      printLcd("Promocja piona.",
+               "Przemiana na:",
+               "a-wieza, b-skoczek,",
+               "c-goniec, d-hetman");
+      break;
+    case WHITE_WON:
+      //prtLcd("12345678901234567890");
+      printLcd("Koniec gry. Oczywi-",
+               "scie wygral Igor, tj",
+               "biale. Wcisnij START",
+               "by zaczac nowa gre");
+      break;
+    case BLACK_WON:
+      //prtLcd("12345678901234567890");
+      printLcd("CRITICAL ERROR: Ko-",
+               "niec gry: czarne wy-",
+               "graly. Wcisnij START",
+               "by zaczac nowa gre");
+      break;
+    case DRAW:
+      //prtLcd("12345678901234567890");
+      printLcd("ERROR: Koniec gry:",
+               "Remis. REBOOTING...",
+               "Wcisnij START, by",
+               "zaczac nowa gre");
+      break;
+    case CONFIRM_PROMOTION:
+      //prtLcd("12345678901234567890");
+      printLcd("Potwierdz promocje",
+               "na " + strPromotePiece,
+               "przyciskiem WYSLIJ");
+      break;
+    case CORE_PROMOTE:
+      //prtLcd("12345678901234567890");
+      printLcd("Pion zostal",
+               "promowany na " + strPromotePiece);
+      //......."promowany na hetmana"
+      break;
     case RESET:
       //prtLcd("12345678901234567890");
       printLcd("Czy chcesz",
@@ -92,56 +120,6 @@ void printLcd(int msg)
       printLcd("ERROR: Unknown",
                "printLcd parameter.");
       break;
-  }
-}
-
-void printLcd(int msg, String str)
-{
-  switch (msg)
-  {
-    case CONFIRM_PROMOTION:
-      //prtLcd("12345678901234567890");
-      printLcd("Potwierdz promocje",
-               "na " + str,
-               "przyciskiem WYSLIJ");
-      break;
-    case SENT_MOVE:
-      //prtLcd("12345678901234567890");
-      //prtLcd("Wyslano ruch: e2e4");
-      printLcd("Wyslano ruch: " + str);
-      break;
-    case PROMOTED:
-      //prtLcd("12345678901234567890");
-      printLcd("Pion zostal",
-               "promowany na " + str);
-      //......."promowany na hetmana"
-      break;
-    default:
-      //prtLcd("12345678901234567890");
-      printLcd("ERROR: printLcd(int",
-               "msg, String str): ",
-               "uknown msg parameter")
-      break;
-  }
-}
-
-void printLcd(int msg, String str1, String str2)
-{
-  if (msg == MOVE_IS_READY)
-  {
-    //prtLcd("12345678901234567890");
-    printLcd("Chcesz wykonac ruch",
-             "z pola " + str1 + " na " + str2 + ".",
-             //"z pola e2 na e4."
-             "Potwierdz: WYSLIJ,",
-             "lub popraw: WYCZYSC");
-  }
-  else
-  {
-    //prtLcd("12345678901234567890");
-    printLcd("ERROR: printLcd",
-             "msg parameter !=",
-             "MOVE_IS_READY")
   }
 }
 

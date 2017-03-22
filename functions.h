@@ -1,91 +1,169 @@
 //FUNCTIONS
 bool button(bool bBtnState, bool bWriteOnce, char chBtnType) //ogarniaj 3 przyciski funkcyjne
 {
-  if (bEnemyTurn == true) //jeżeli jest tura gracza
+  if (bBtnState && !bWriteOnce) //wciskany przycisk uruchomi funkcję raz mimo długiego trzymania
   {
-    if (bBtnState && !bWriteOnce) //wciskany przycisk uruchomi funkcję raz mimo długiego trzymania
+    /*if (chBtnType == 't') //start button
     {
-      if (chBtnType == 't') //start button
+      //jeżeli nie jesteśmy w fazie startu gry (rozgrywka trwa) i gracz chce zresetować rozgrywkę
+      if (bGameJustStarted == false && bConfirmedReset == false)
       {
-        //jeżeli nie jesteśmy w fazie startu gry (rozgrywka trwa) i gracz chce zresetować rozgrywkę
-        if (bGameJustStarted == false && bConfirmedReset == false)
-        {
-          printLcd(RESET);
-          bConfirmedReset = true;
-        }
-        //jeżeli nie jesteśmy w fazie startu gry (rozgrywka trwa) i gracz potwierdził chęć zresetowania rozgrywki
-        else if (bGameJustStarted == false && bConfirmedReset == true)
-        {
-          //czyszczenie
-          bEnemyTurn = false;
-          bConfirmedReset = false;
-          bSendAvailable = false; //prewencyjnie
-          bClearAvailable = false; //prewencyjnie
-          bCoreFullDataBlock = false; //prewencyjnie
-          bPromoteAvailable = false;
-          strDataReceived = ""; //prewencyjnie
-          strLetterFrom = "-1"; //prewencyjnie
-          strLetterTo = "-1"; //prewencyjnie
-          nDigitFrom = -1;  //prewencyjnie
-          nDigitTo = -1; //prewencyjnie
-          digitalWrite(nLedFrom, LOW); //prewencyjnie
-          digitalWrite(nLedTo, LOW); //prewencyjnie
-          digitalWrite(nLedSend, LOW); //prewencyjnie
-          digitalWrite(nLedClear, LOW); //prewencyjnie
-          ledEnemysMove(false, false); //zgaś obie diody, które pokazują czy teraz wbijany był ruch skąd, czy dokąd
-
-          Serial.print("@start$"); //to rozpocznij nową grę
-        }
-        else if (bGameJustStarted == true) //gra w pamięci rozpoczęta. przycisk start spowoduje pierwszy ruch białego
-        {
-          bGameJustStarted = false; //stan gry będzie jako rozpoczęty dopiero jak wykona się jakikolwiek ruch
-          bEnemyTurn = false;
-          printLcd(STARTING);
-          Serial.print("@doFirstIgorMove$"); //gra ruszyła, niech AI wykona swój pierwszy ruch
-        }
+        printLcd(RESET);
+        bConfirmedReset = true;
       }
-      else if (chBtnType == 'd' && bSendAvailable == true) //send można wysłać tylko wtedy, gdy jest gotowy ruch do wysłania
+      //jeżeli nie jesteśmy w fazie startu gry (rozgrywka trwa) i gracz potwierdził chęć zresetowania rozgrywki
+      else if (bGameJustStarted == false && bConfirmedReset == true)
       {
-        if (strPromotePiece == "0") //jezeli to nie jest promocja
-        {
-          printLcd(SENT_MOVE,  strLetterFrom + (String)nDigitFrom + strLetterTo + (String)nDigitTo));
-          Serial.print("@move " + strLetterFrom + (String)nDigitFrom + strLetterTo + (String)nDigitTo + "$"); //move e2e4
-        }
-        else //jezeli potwierdzamy promocje
-        {
-          printLcd(PROMOTED + strPromotePiece);
-          bPromoteAvailable = false; //koniec sytuacji promocji
-          strPromotePiece = "0"; //czyscimy by nie wpadac w warunki promocji
-          Serial.print("promote_to " + strPromoteType);
-          strPromoteType = "0"; //czyszczenie by nie wpadac w warunek pytania o promocje
-        }
+        //czyszczenie
         bEnemyTurn = false;
-        bGameJustStarted = false; //prewencyjnie
-        bClearAvailable = false; //wysłano ruch. nie ma zatem już nic do czyszczenia
-        bSendAvailable = false; //ruch wysłano i nie można już wciskać przycisku WYSLIJ
-        digitalWrite(nLedSend, LOW);
+        bConfirmedReset = false;
+        bSendAvailable = false; //prewencyjnie
+        bClearAvailable = false; //prewencyjnie
+        bCoreFullDataBlock = false; //prewencyjnie
+        bPromoteAvailable = false;
+        strDataReceived = ""; //prewencyjnie
+        strLetterFrom = "-1"; //prewencyjnie
+        strLetterTo = "-1"; //prewencyjnie
+        nDigitFrom = -1;  //prewencyjnie
+        nDigitTo = -1; //prewencyjnie
+        digitalWrite(nLedFrom, LOW); //prewencyjnie
+        digitalWrite(nLedTo, LOW); //prewencyjnie
+        digitalWrite(nLedSend, LOW); //prewencyjnie
+        digitalWrite(nLedClear, LOW); //prewencyjnie
         ledEnemysMove(false, false); //zgaś obie diody, które pokazują czy teraz wbijany był ruch skąd, czy dokąd
-      }
-      else if (chBtnType == 'c' && bClearAvailable == true) //czyszczenie ruchu, jeżeli cokolwiek było już wbijane
-      {
-        clearMove();
-      }
 
-      bWriteOnce = true; //cokolwiek wciśnięto, to raz to zrobiono i wykonano, mimo iż przycisk przez jakąś chwilę będzie wciśniety
-      delay(20); //zabezpieczenie przed wibrowaniem przycisku przy wciskaniu
+        Serial.print("@start$"); //to rozpocznij nową grę
+      }
+      else if (bGameJustStarted == true) //gra w pamięci rozpoczęta. przycisk start spowoduje pierwszy ruch białego
+      {
+        bGameJustStarted = false; //stan gry będzie jako rozpoczęty dopiero jak wykona się jakikolwiek ruch
+        bEnemyTurn = false;
+        printLcd(STARTING);
+        Serial.print("@doFirstIgorMove$"); //gra ruszyła, niech AI wykona swój pierwszy ruch
+      }
     }
-    else if (!bBtnState && bWriteOnce)
+    else if (chBtnType == 'd' && bSendAvailable == true) //send można wysłać tylko wtedy, gdy jest gotowy ruch do wysłania
     {
-      bWriteOnce = false;
-      delay(20); //zabezpieczenie przed wibrowaniem przycisku przy wciskaniu
+      if (strPromotePiece == "0") //jezeli to nie jest promocja
+      {
+        printLcd(SENT_MOVE,  strLetterFrom + (String)nDigitFrom + strLetterTo + (String)nDigitTo));
+        Serial.print("@move " + strLetterFrom + (String)nDigitFrom + strLetterTo + (String)nDigitTo + "$"); //move e2e4
+      }
+      else //jezeli potwierdzamy promocje
+      {
+        printLcd(PROMOTED + strPromotePiece);
+        bPromoteAvailable = false; //koniec sytuacji promocji
+        strPromotePiece = "0"; //czyscimy by nie wpadac w warunki promocji
+        Serial.print("promote_to " + strPromoteType);
+        strPromoteType = "0"; //czyszczenie by nie wpadac w warunek pytania o promocje
+      }
+      bEnemyTurn = false;
+      bGameJustStarted = false; //prewencyjnie
+      bClearAvailable = false; //wysłano ruch. nie ma zatem już nic do czyszczenia
+      bSendAvailable = false; //ruch wysłano i nie można już wciskać przycisku WYSLIJ
+      digitalWrite(nLedSend, LOW);
+      ledEnemysMove(false, false); //zgaś obie diody, które pokazują czy teraz wbijany był ruch skąd, czy dokąd
     }
+    else if (chBtnType == 'c' && bClearAvailable == true) //czyszczenie ruchu, jeżeli cokolwiek było już wbijane
+    {
+      clearMove();
+    }*/
+
+    bWriteOnce = true; //cokolwiek wciśnięto, to raz to zrobiono i wykonano, mimo iż przycisk przez jakąś chwilę będzie wciśniety
+    delay(20); //zabezpieczenie przed wibrowaniem przycisku przy wciskaniu
+  }
+  else if (!bBtnState && bWriteOnce)
+  {
+    bWriteOnce = false;
+    delay(20); //zabezpieczenie przed wibrowaniem przycisku przy wciskaniu
   }
   //jeżeli żadna zmiana nie zaszła, to zwrócone zostanie to samo co weszło, czyli nic się nie stanie
   return bWriteOnce;
 }
 
-String lettersButtonsActivated(char chTargetField)
+String lettersButtonsActivated()
 {
+  String result = "-1";
+
+  switch (customKey)
+  {
+    case 'a': result = "a"; break;
+    case 'b': result = "b"; break;
+    case 'c': result = "c"; break;
+    case 'd': result = "d"; break;
+    case 'e': result = "e"; break;
+    case 'f': result = "f"; break;
+    case 'g': result = "g"; break;
+    case 'h': result = "h"; break;
+  }
+
+  if (result == "-1") return "-1";
+  else return result;
+}
+
+
+int digitsButtonsActivated()
+{
+  int result = -1;
+
+  switch (customKey)
+  {
+    case '1': result = 1; break;
+    case '2': result = 2; break;
+    case '3': result = 3; break;
+    case '4': result = 4; break;
+    case '5': result = 5; break;
+    case '6': result = 6; break;
+    case '7': result = 7; break;
+    case '8': result = 8; break;
+  }
+
+  if (result <= 0) return -1;
+  else return result;
+}
+
+String promoteButtonsActivated()
+{
+  String result = "-1";
+
+  switch (customKey)
+  {
+    case 'a': strPromotePiece = "wieze"; result = "a"; break;
+    case 'b': strPromotePiece = "skoczka"; result = "b"; break;
+    case 'c': strPromotePiece = "gonca"; result = "c"; break;
+    case 'd': strPromotePiece = "hetmana"; result = "d"; break;
+  }
+
+  if (result == "-1") return "-1";
+  else return result;
+}
+
+void interfaceAvailable(bool bStart, bool bSend, bool bClear, bool bBtnsA_H, bool bBtns1_8, bool bBtnsA_D)
+{
+  if (bStart)
+  {
+    startBtnState = digitalRead(startBtnPin);
+    bBtnStartOnce = button(startBtnState, bStartOnce, 't');
+  }
+  if (bSend)
+  {
+    sendBtnState = digitalRead(sendBtnPin);
+    bBtnSendOnce = button(sendBtnState, bSendOnce, 'd');
+  }
+  if (bClear)
+  {
+    clearBtnState = digitalRead(clearBtnPin);
+    bBtnClearOnce = button(clearBtnState, bClearOnce, 'c');
+  }
+  if (bBtnsA_H || bBtns1_8 || bBtnsA_D)
+  {
+    customKey = customKeypad.getKey(); //odczytywany wciskany przycisk
+  }
+}
+
+
+/*String lettersButtonsActivated(char chTargetField)
+  {
   if (bPrintOnce == false)
   {
     if (chTargetField == 'f') //dla przycisków 'from'
@@ -132,10 +210,10 @@ String lettersButtonsActivated(char chTargetField)
     //digitalWrite(nLedTest, HIGH); //testowa dioda
     return result;
   }
-}
+  }*/
 
-int digitsButtonsActivated(char chTargetField)
-{
+/*int digitsButtonsActivated(char chTargetField)
+  {
   if (bPrintOnce == false)
   {
     bClearAvailable = true; //jest co czyścić
@@ -168,7 +246,7 @@ int digitsButtonsActivated(char chTargetField)
     bPrintOnce = false;
     return result;
   }
-}
+  }*/
 
 void skladajPrzychodzaceDane()
 {
@@ -181,14 +259,6 @@ void skladajPrzychodzaceDane()
     }
     strDataReceived += buffer;
   }
-}
-
-String promote()
-{
-  if (customKey == 'a') return "a";
-  else if (customKey == 'b') return "b";
-  else if (customKey == 'c') return "c";
-  else if (customKey == 'd') return "d";
 }
 
 void ledWhoseTurn() //led informujący gracza o tym czy może się ruszać (TODO: zamienić na "czekaj..." or smtg?)
@@ -212,60 +282,120 @@ void ledEnemysMove(bool ledFrom, bool ledTo) //światełka informujące o tym cz
   digitalWrite(nLedTo, ledTo);
 }
 
-void clearMove()
-{
-  strGameStatus = "selectLetterFrom";
+/*void clearMove()
+  {
   strLetterFrom = "-1";
   strLetterTo = "-1";
   nDigitFrom = -1;
   nDigitTo = -1;
-  bClearAvailable = false; //wyczyszczone. nie da się od razu ponownie wcisnąć przycisku WYCZYSC
-  digitalWrite(nLedClear, LOW);
-  ledEnemysMove(false, false); //zgaś obie diody, które pokazują czy teraz wbijany był ruch skąd, czy dokąd
-}
+  strPromoteType = "-1";
+  strPromotePiece = "-1";
+  //digitalWrite(nLedClear, LOW);
+  //ledEnemysMove(false, false); //zgaś obie diody, które pokazują czy teraz wbijany był ruch skąd, czy dokąd
+  }*/
 
-void gameStatus(int gmStat)
+void gameStatus()
 {
-  static int nGameStatus = gmStat;
+  /*interfaceAvailable(nGameStatus);
+      printLcd(nGameStatus);*/ //zawsze?
+  printLcd(nGameStatus);
 
-  switch (gmStat)
+  switch (nGameStatus)
   {
-    case NONE:
-
+    case ARDUINO_READY:
+      interfaceAvailable(0, 0, 0, 0, 0, 0);
       break;
     case STARTED:
-      bGameJustStarted = true; //nowa gra ruszyła w pamieci. AI czeka z ruchem. wciśnięcie START rozpocznie ruch
-      bStartAvailable = true;
-      bEnemyTurn = true;
-      printLcd(PRESS_START);
+      interfaceAvailable(1, 0, 0, 0, 0, 0);
+      if (bBtnStartOnce) nGameStatus = CORE_START;
+      break;
+    case CORE_START:
+      interfaceAvailable(0, 0, 0, 0, 0, 0);
+      Serial.print("@doFirstIgorMove$"); //gra ruszyła, niech AI wykona swój pierwszy ruch
       break;
     case SELECT_LETTER_FROM:
-      bEnemyTurn = true;
+      interfaceAvailable(1, 0, 0, 1, 0, 0);
+      strLetterFrom = lettersButtonsActivated(); //wprowadzenie litery pola skąd
+      if (strLetterFrom != "-1") nGameStatus = SELECT_DIGIT_FROM;
       break;
     case SELECT_DIGIT_FROM:
-
+      interfaceAvailable(1, 0, 1, 0, 1, 0);
+      nDigitFrom = digitsButtonsActivated(); //wprowadzenie cyfry pola skąd
+      if (nDigitFrom > 0) nGameStatus = SELECT_LETTER_TO;
       break;
     case SELECT_LETTER_TO:
-
+      interfaceAvailable(1, 0, 1, 1, 0, 0);
+      strLetterTo = lettersButtonsActivated(); //wprowadzenie litery pola skąd
+      if (strLetterTo != "-1") nGameStatus = SELECT_DIGIT_TO; //wprowadzenie cyfry pola dokąd
       break;
     case SELECT_DIGIT_TO:
-
+      interfaceAvailable(1, 0, 1, 0, 1, 0);
+      nDigitTo = digitsButtonsActivated(); //wprowadzenie cyfry pola skąd
+      if (nDigitTo > 0) nGameStatus = MOVE_IS_READY;
       break;
+    //void interfaceAvailable(bool bStart, bool bSend, bool bClear, bool bBtnsA_H, bool bBtns1_8, bool bBtnsA_D)
     case MOVE_IS_READY:
-      printLcd(MOVE_IS_READY, strLetterFrom + (String)nDigitFrom, strLetterTo + (String)nDigitTo);
-      bSendAvailable = true; //możemy już wciskać przycisk "send"
-      digitalWrite(nLedSend, HIGH);
+      interfaceAvailable(1, 1, 1, 0, 0, 0);
+      //digitalWrite(nLedSend, HIGH);
+      if (bBtnSendOnce) nGameStatus = CORE_MOVE;
+      if (bBtnClearOnce) nGameStatus = CLEAR_MOVE;
       break;
-    case BAD_MOVE:
-      bEnemyTurn = true;
-      bBadMove = true;
+    case CORE_MOVE:
+      interfaceAvailable(0, 0, 0, 0, 0, 0);
+      Serial.print("@move " + strLetterFrom + (String)nDigitFrom + strLetterTo + (String)nDigitTo + "$"); //move e2e4
       clearMove();
       break;
-    case PROMOTE:
-      bEnemyTurn = true; //abysmy mogl dzialac w przycisk send i by sie dioda sciecila
-      bPromoteAvailable = true;
-      printLcd(PROMOTE_TO);
-      ledEnemysMove(true, false); //prewencyjnie
+    case BAD_MOVE:
+      clearMove(); //prewencyjnie
+      interfaceAvailable(1, 0, 0, 1, 0, 0);
+      strLetterFrom = lettersButtonsActivated(); //wprowadzenie litery pola skąd
+      if (strLetterFrom != "-1") nGameStatus = SELECT_DIGIT_FROM;
+      break;
+    case WHITE_WON:
+      interfaceAvailable(1, 0, 0, 0, 0, 0);
+      if (bBtnStartOnce) nGameStatus = STARTED;
+      break;
+    case BLACK_WON:
+      interfaceAvailable(1, 0, 0, 0, 0, 0);
+      if (bBtnStartOnce) nGameStatus = STARTED;
+      break;
+    case DRAW:
+      interfaceAvailable(1, 0, 0, 0, 0, 0);
+      if (bBtnStartOnce) nGameStatus = STARTED;
+      break;
+    case ARDUINO_PROMOTE:
+      interfaceAvailable(1, 0, 0, 0, 0, 1);
+      //ledEnemysMove(true, false); //prewencyjnie
+      strPromoteType = promoteButtonsActivated();
+      if (strPromoteType != "-1") nGameStatus = PROMOTE_TO;
+      break;
+    case CONFIRM_PROMOTION:
+      interfaceAvailable(1, 1, 1, 0, 0, 0);
+      if (bBtnSendOnce) nGameStatus = CORE_PROMOTE;
+      if (bBtnClearOnce) nGameStatus = CLEAR_PROMOTE;
+      break;
+    case CORE_PROMOTE:
+      interfaceAvailable(0, 0, 0, 0, 0, 0);
+      Serial.print("@promoteTo " + strPromoteType + "$"); //"promoteTo d"
+      clearMove();
+      break;
+    case CORE_RESET:
+
+      break;
+    case RESET:
+
+      break;
+    case CLEAR_MOVE:
+      strLetterFrom = "-1";
+      strLetterTo = "-1";
+      nDigitFrom = -1;
+      nDigitTo = -1;
+      nGameStatus = SELECT_LETTER_FROM;
+      break;
+    case CLEAR_PROMOTE:
+      strPromoteType = "-1";
+      strPromotePiece = "-1";
+      nGameStatus = ARDUINO_PROMOTE;
       break;
     default:
 

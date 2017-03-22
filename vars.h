@@ -1,25 +1,33 @@
-const int NONE = 0;
-const int MOVE_IS_READY = 1;
-const int MOVE_WAITS_TO_BE_SEND = 2;
-const int STARTED = 3;
-const int SELECT_LETTER_FROM = 4;
+const int ARDUINO_READY = 1;
+const int STARTED = 2;
+const int CORE_START  = 3;
+const int SELECT_LETTER_FROM  = 4;
 const int SELECT_DIGIT_FROM = 5;
-const int SELECT_LETTER_TO = 6;
+const int SELECT_LETTER_TO  = 6;
 const int SELECT_DIGIT_TO = 7;
-const int BAD_MOVE = 8;
-const int PROMOTE = 9;
-const int ARDUINO_READY = 10;
-const int PRESS_START = 11;
-const int PROMOTE_TO = 12;
-const int WHITE_WON = 13;
-const int BLACK_WON = 14;
-const int DRAW = 15;
-const int CONFIRM_MOVE = 16;
-const int CONFIRM_PROMOTION = 17;
-const int STARTING = 18;
-const int SENT_MOVE = 19;
-const int PROMOTED = 20;
-const int RESET = 21;
+const int MOVE_IS_READY = 8;
+const int CORE_MOVE = 9;
+const int BAD_MOVE  = 10;
+const int ARDUINO_PROMOTE = 11;
+const int WHITE_WON = 12;
+const int BLACK_WON = 13;
+const int DRAW  = 14;
+const int CONFIRM_PROMOTION = 15;
+const int CORE_PROMOTE  = 16;
+const int CORE_RESET  = 17;
+const int RESET = 18;
+const int CLEAR_MOVE = 19;
+const int CLEAR_PROMOTE = 20;
+
+int nGameStatus = ARDUINO_READY;
+
+/*bool bStartAvailable = false; //flaga sprawdzająca czy możemy wcisnąć przycisk START (po połączeniu z core'm)
+bool bSendAvailable = false; //flaga sprawdzająca czy możemy wcisnąć przycisk WYSLIJ i wyslac dane na core
+bool bClearAvailable = false; //flaga sprawdzająca czy jest co czyścić (czy był częściowo/całościowo wbity ruch gracza)
+bool bBtnsA_H_Available = false; 
+bool bBtns1_8_Available = false; 
+bool bBtnsA_D_Available = false; */
+
 
 //zmienne sklejające dane
 bool bCoreFullDataBlock = false; //czy są jakieś dane do wysłania
@@ -31,7 +39,7 @@ const int nLedFrom(1), nLedTo(1), nLedSend(1), nLedClear(1), nLedPlayer(1), nLed
 
 const int startBtnPin(11), sendBtnPin(12), clearBtnPin(13);
 bool startBtnState(0), sendBtnState(0), clearBtnState(0);
-bool bStartOnce(0), bSendOnce(0), bClearOnce(0);
+bool bBtnStartOnce(0), bBtnSendOnce(0), bBtnClearOnce(0);
 
 const byte ROWS = 4; //four rows
 const byte COLS = 4; //four columns
@@ -50,16 +58,8 @@ byte colPins [COLS] = {6, 7, 8, 9}; //connect to the column pinouts of the keypa
 Keypad customKeypad = Keypad( makeKeymap(hexaKeys), rowPins, colPins, ROWS, COLS);
 char customKey; //odczytywany wciskany przycisk
 
-bool bGameJustStarted = false;
-bool bEnemyTurn = false; //czy gracz mozę już typwoać swój ruch
-bool bStartAvailable = false; //flaga sprawdzająca czy możemy wcisnąć przycisk START (po połączeniu z core'm)
-bool bSendAvailable = false; //flaga sprawdzająca czy możemy wcisnąć przycisk WYSLIJ i wyslac dane na core
-bool bClearAvailable = false; //flaga sprawdzająca czy jest co czyścić (czy był częściowo/całościowo wbity ruch gracza)
-bool bConfirmedReset = false; //flaga po której sprawdzamy czy gracz potwierdził to że chce zresetować istniejącą grę
-bool bPromoteAvailable = false; //flaga po ktorej sprawdzamy czy mamy do czynienia z promocja
-bool bBadMove = false; //flaga po ktorej sprawdzamy czy gracz nie wyslal dopiero co błędnego zapytania o swój ruch
-String strPromoteType = "0";
-String strPromotePiece = "0";
+String strPromoteType = "-1";
+String strPromotePiece = "-1";
 
 String strLetterFrom("-1"), strLetterTo("-1");
 int nDigitFrom(-1), nDigitTo(-1);
