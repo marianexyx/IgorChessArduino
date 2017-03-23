@@ -97,6 +97,7 @@ void printLcd(int msg)
                  //"z pola e2 na e4."
                  "Potwierdz: WYSLIJ,",
                  "lub popraw: WYCZYSC");
+        break;
       case CORE_MOVE:
         //prtLcd("12345678901234567890");
         //prtLcd("Wyslano ruch: e2e4");

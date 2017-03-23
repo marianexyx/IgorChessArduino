@@ -22,6 +22,8 @@ const int CLEAR_PROMOTE = 20;
 int nGameStatus = ARDUINO_READY;
 int nPrevGmStatus = 0;
 
+bool nPrinted; //zabezpiecznie przed wysyłaniem w pętli tej samej wiadomości na serial
+
 //zmienne sklejające dane
 bool bCoreFullDataBlock = false; //czy są jakieś dane do wysłania
 char buffer;

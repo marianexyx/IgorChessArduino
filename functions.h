@@ -100,7 +100,8 @@ void skladajPrzychodzaceDane()
   while (Serial.available() > 0)
   {
     buffer = Serial.read();
-    if (buffer == '$') {
+    if (buffer == '$') 
+    {
       bCoreFullDataBlock = true;
       break;
     }
@@ -139,9 +140,26 @@ void clearMove()
   strPromotePiece = "-1";
 }
 
+void sendToCoreOnce(int nGmSt)
+{
+  String strMsg = "";
+  
+  if (!nPrinted)
+  {
+    if (nGmSt == CORE_START) strMsg = "@doFirstIgorMove$";
+    else if (nGmSt == CORE_MOVE) strMsg = "@move " + strLetterFrom + (String)nDigitFrom +
+                                             strLetterTo + (String)nDigitTo + "$";
+    else if (nGmSt == CORE_PROMOTE) strMsg = "@promoteTo " + strPromoteType + "$";
+    else if (nGmSt == CORE_RESET) strMsg = "@reset$";
+    else strMsg = "@ERROR: Unknown gameStatus() parameter$";
+
+    Serial.print(strMsg);
+    nPrinted = true; //zamieni się na false gdy jakąś otrzymamy całą zmienną z core
+  }
+}
+
 void gameStatus()
 {
-  //TODO: print once!
   printLcd(nGameStatus);
 
   switch (nGameStatus)
@@ -155,7 +173,7 @@ void gameStatus()
       break;
     case CORE_START:
       interfaceAvailable(0, 0, 0, 0, 0, 0);
-      Serial.print("@doFirstIgorMove$"); //gra ruszyła, niech AI wykona swój pierwszy ruch
+      sendToCoreOnce(nGameStatus); //gra ruszyła, niech AI wykona swój pierwszy ruch
       break;
     case SELECT_LETTER_FROM:
       interfaceAvailable(1, 0, 0, 1, 0, 0);
@@ -179,7 +197,8 @@ void gameStatus()
     case SELECT_LETTER_TO:
       interfaceAvailable(1, 0, 1, 1, 0, 0);
       strLetterTo = lettersButtonsActivated(); //wprowadzenie litery pola skąd
-      if (bBtnStartOnce) {
+      if (bBtnStartOnce) 
+      {
         nPrevGmStatus = nGameStatus;
         nGameStatus = RESET;
       }
@@ -189,7 +208,8 @@ void gameStatus()
     case SELECT_DIGIT_TO:
       interfaceAvailable(1, 0, 1, 0, 1, 0);
       nDigitTo = digitsButtonsActivated(); //wprowadzenie cyfry pola skąd
-      if (bBtnStartOnce) {
+      if (bBtnStartOnce) 
+      {
         nPrevGmStatus = nGameStatus;
         nGameStatus = RESET;
       }
@@ -200,7 +220,8 @@ void gameStatus()
     case MOVE_IS_READY:
       interfaceAvailable(1, 1, 1, 0, 0, 0);
       //digitalWrite(nLedSend, HIGH);
-      if (bBtnStartOnce) {
+      if (bBtnStartOnce) 
+      {
         nPrevGmStatus = nGameStatus;
         nGameStatus = RESET;
       }
@@ -209,14 +230,15 @@ void gameStatus()
       break;
     case CORE_MOVE:
       interfaceAvailable(0, 0, 0, 0, 0, 0);
-      Serial.print("@move " + strLetterFrom + (String)nDigitFrom + strLetterTo + (String)nDigitTo + "$"); //move e2e4
+      sendToCoreOnce(nGameStatus); //move e2e4
       clearMove();
       break;
     case BAD_MOVE:
       clearMove(); //prewencyjnie
       interfaceAvailable(1, 0, 0, 1, 0, 0);
       strLetterFrom = lettersButtonsActivated(); //wprowadzenie litery pola skąd
-      if (bBtnStartOnce) {
+      if (bBtnStartOnce) 
+      {
         nPrevGmStatus = nGameStatus;
         nGameStatus = RESET;
       }
@@ -255,7 +277,7 @@ void gameStatus()
       break;
     case CORE_PROMOTE:
       interfaceAvailable(0, 0, 0, 0, 0, 0);
-      Serial.print("@promoteTo " + strPromoteType + "$"); //"promoteTo d"
+      sendToCoreOnce(nGameStatus);  //"promoteTo d"
       clearMove();
       break;
     case RESET:
@@ -265,7 +287,7 @@ void gameStatus()
       break;
     case CORE_RESET:
       interfaceAvailable(0, 0, 0, 0, 0, 0);
-      Serial.print("@reset$");
+      sendToCoreOnce(nGameStatus); 
       clearMove();
       break;
     case CLEAR_MOVE:
@@ -281,7 +303,7 @@ void gameStatus()
       printLcd("ERROR: Unknown",
                "gameStatus()",
                "parameter");
-      Serial.print("@ERROR: Unknown gameStatus() parameter$");
+      sendToCoreOnce(nGameStatus);
       break;
   }
 }
@@ -309,6 +331,8 @@ void sprawdzajPrzychodzaceDane()
     }
     bCoreFullDataBlock = false; //wiadomość otrzymana. wyczyść flagę
     strDataReceived = "";
+
+    nPrinted = false;
   }
 }
 
