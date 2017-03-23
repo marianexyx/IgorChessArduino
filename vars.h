@@ -20,14 +20,7 @@ const int CLEAR_MOVE = 19;
 const int CLEAR_PROMOTE = 20;
 
 int nGameStatus = ARDUINO_READY;
-
-/*bool bStartAvailable = false; //flaga sprawdzająca czy możemy wcisnąć przycisk START (po połączeniu z core'm)
-bool bSendAvailable = false; //flaga sprawdzająca czy możemy wcisnąć przycisk WYSLIJ i wyslac dane na core
-bool bClearAvailable = false; //flaga sprawdzająca czy jest co czyścić (czy był częściowo/całościowo wbity ruch gracza)
-bool bBtnsA_H_Available = false; 
-bool bBtns1_8_Available = false; 
-bool bBtnsA_D_Available = false; */
-
+int nPrevGmStatus = 0;
 
 //zmienne sklejające dane
 bool bCoreFullDataBlock = false; //czy są jakieś dane do wysłania
@@ -43,7 +36,6 @@ bool bBtnStartOnce(0), bBtnSendOnce(0), bBtnClearOnce(0);
 
 const byte ROWS = 4; //four rows
 const byte COLS = 4; //four columns
-
 char hexaKeys[ROWS][COLS] = //define the cymbols on the buttons of the keypads
 {
   {'a', 'b', 'c', 'd'},
@@ -51,18 +43,15 @@ char hexaKeys[ROWS][COLS] = //define the cymbols on the buttons of the keypads
   {'1', '2', '3', '4'},
   {'5', '6', '7', '8'}
 };
-
 byte rowPins  [ROWS] = {2, 3, 4, 5}; //connect to the row pinouts of the keypad
 byte colPins [COLS] = {6, 7, 8, 9}; //connect to the column pinouts of the keypad
 //initialize an instance of class NewKeypad
 Keypad customKeypad = Keypad( makeKeymap(hexaKeys), rowPins, colPins, ROWS, COLS);
 char customKey; //odczytywany wciskany przycisk
 
-String strPromoteType = "-1";
-String strPromotePiece = "-1";
-
 String strLetterFrom("-1"), strLetterTo("-1");
 int nDigitFrom(-1), nDigitTo(-1);
-
+String strPromoteType = "-1";
+String strPromotePiece = "-1";
 
 //todo: zamiast podciągać w dół rezystorami mogę podciągać w górę programowo...
