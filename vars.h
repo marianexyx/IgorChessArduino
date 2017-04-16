@@ -30,9 +30,9 @@ char buffer;
 String strDataReceived;
 
 const int nLedTest(10);
-const int nLedFrom(1), nLedTo(1), nLedSend(1), nLedClear(1), nLedPlayer(1), nLedIgor(1);
+const int nLedFrom(40), nLedTo(41), nLedSend(42), nLedClear(43), nLedPlayer(44), nLedIgor(45);
 
-const int startBtnPin(11), sendBtnPin(12), clearBtnPin(13);
+const int startBtnPin(32), sendBtnPin(33), clearBtnPin(34);
 bool startBtnState(0), sendBtnState(0), clearBtnState(0);
 bool bBtnStartOnce(0), bBtnSendOnce(0), bBtnClearOnce(0);
 
@@ -45,8 +45,8 @@ char hexaKeys[ROWS][COLS] = //define the cymbols on the buttons of the keypads
   {'1', '2', '3', '4'},
   {'5', '6', '7', '8'}
 };
-byte rowPins  [ROWS] = {2, 3, 4, 5}; //connect to the row pinouts of the keypad
-byte colPins [COLS] = {6, 7, 8, 9}; //connect to the column pinouts of the keypad
+byte rowPins  [ROWS] = {22, 23, 24, 25}; //connect to the row pinouts of the keypad
+byte colPins [COLS] = {26, 27, 28, 29}; //connect to the column pinouts of the keypad
 //initialize an instance of class NewKeypad
 Keypad customKeypad = Keypad( makeKeymap(hexaKeys), rowPins, colPins, ROWS, COLS);
 char customKey; //odczytywany wciskany przycisk

@@ -136,7 +136,7 @@ void printLcd(int msg)
       case DRAW:
         //prtLcd("12345678901234567890");
         printLcd("ERROR: Koniec gry:",
-                 "Remis. REBOOTING...",
+                 "Remis. ANALYZ!#Ñ░»▄",
                  "Wcisnij START, by",
                  "zaczac nowa gre");
         break;
@@ -144,6 +144,7 @@ void printLcd(int msg)
         //prtLcd("12345678901234567890");
         printLcd("Potwierdz promocje",
                  "na " + strPromotePiece,
+                 "na hetmana"
                  "przyciskiem WYSLIJ");
         break;
       case CORE_PROMOTE:
