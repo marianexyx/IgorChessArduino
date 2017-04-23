@@ -45,8 +45,8 @@ char hexaKeys[ROWS][COLS] = //define the cymbols on the buttons of the keypads
   {'1', '2', '3', '4'},
   {'5', '6', '7', '8'}
 };
-byte rowPins  [ROWS] = {22, 23, 24, 25}; //connect to the row pinouts of the keypad
-byte colPins [COLS] = {26, 27, 28, 29}; //connect to the column pinouts of the keypad
+byte rowPins  [ROWS] = {25, 24, 23, 22}; 
+byte colPins [COLS] = {29, 28, 27, 26};
 //initialize an instance of class NewKeypad
 Keypad customKeypad = Keypad( makeKeymap(hexaKeys), rowPins, colPins, ROWS, COLS);
 char customKey; //odczytywany wciskany przycisk
