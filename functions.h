@@ -62,10 +62,10 @@ String promoteButtonsActivated()
 
   switch (customKey)
   {
-    case 'a': strPromotePiece = "wieze"; result = "a"; break;
-    case 'b': strPromotePiece = "skoczka"; result = "b"; break;
-    case 'c': strPromotePiece = "gonca"; result = "c"; break;
-    case 'd': strPromotePiece = "hetmana"; result = "d"; break;
+    case 'a': strPromotePiece = "wieze"; result = "r"; break; //rook
+    case 'b': strPromotePiece = "skoczka"; result = "k"; break; //knight
+    case 'c': strPromotePiece = "gonca"; result = "b"; break; //bishop
+    case 'd': strPromotePiece = "hetmana"; result = "q"; break; //queen
   }
 
   if (result == "-1") return "-1";
@@ -146,7 +146,7 @@ void sendToCoreOnce(int nGmSt)
   
   if (!nPrinted)
   {
-    if (nGmSt == CORE_START) strMsg = "@doFirstIgorMove$";
+    if (nGmSt == CORE_START) strMsg = "@start$";
     else if (nGmSt == CORE_MOVE) strMsg = "@move " + strLetterFrom + (String)nDigitFrom +
                                              strLetterTo + (String)nDigitTo + "$";
     else if (nGmSt == CORE_PROMOTE) strMsg = "@promoteTo " + strPromoteType + "$";
@@ -248,7 +248,8 @@ void gameStatus()
       interfaceAvailable(1, 0, 0, 0, 0, 1);
       //ledEnemysMove(true, false); //prewencyjnie
       strPromoteType = promoteButtonsActivated();
-      if (bBtnStartOnce) {
+      if (bBtnStartOnce) 
+      {
         nPrevGmStatus = nGameStatus;
         nGameStatus = RESET;
       }
@@ -314,7 +315,7 @@ void sprawdzajPrzychodzaceDane()
   {
     if (strDataReceived == "started") nGameStatus = STARTED;
     else if (strDataReceived == "IgorHasEndedMove" || strDataReceived == "PromotedTo") nGameStatus = SELECT_LETTER_FROM;
-    else if (strDataReceived.substring(0, 8) == "BAD_MOVE") nGameStatus = BAD_MOVE;
+    else if (strDataReceived == "BAD_MOVE") nGameStatus = BAD_MOVE;
     else if (strDataReceived == "promote") nGameStatus = ARDUINO_PROMOTE;
     else if (strDataReceived.substring(0, 8) == "GameOver")
     {

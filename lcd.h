@@ -55,7 +55,7 @@ void printLcd(int msg)
         break;
       case STARTED:
         //prtLcd("12345678901234567890");
-        printLcd("Wcisnij start, aby",
+        printLcd("Wcisnij START, aby",
                  "rozpaczac gre");
         break;
       case CORE_START:
@@ -96,7 +96,7 @@ void printLcd(int msg)
                  " na " + strLetterTo + (String)nDigitTo + ".",
                  //"z pola e2 na e4."
                  "Potwierdz: WYSLIJ,",
-                 "lub popraw: WYCZYSC");
+                 "lub popraw: POPRAW");
         break;
       case CORE_MOVE:
         //prtLcd("12345678901234567890");
@@ -116,8 +116,8 @@ void printLcd(int msg)
         //prtLcd("12345678901234567890");
         printLcd("Promocja piona.",
                  "Przemiana na:",
-                 "a-wieza, b-skoczek,",
-                 "c-goniec, d-hetman");
+                 "A-wieza, B-skoczek,",
+                 "C-goniec, D-hetman");
         break;
       case WHITE_WON:
         //prtLcd("12345678901234567890");
@@ -144,7 +144,7 @@ void printLcd(int msg)
         //prtLcd("12345678901234567890");
         printLcd("Potwierdz promocje",
                  "na " + strPromotePiece,
-                 "na hetmana"
+                 //naHetmana"
                  "przyciskiem WYSLIJ");
         break;
       case CORE_PROMOTE:
@@ -158,7 +158,7 @@ void printLcd(int msg)
         printLcd("Czy chcesz",
                  "zresetowac gre?",
                  "Potwierdz: WYSLIJ,",
-                 "lub anuluj: WYCZYSC");
+                 "lub anuluj: POPRAW");
         break;
       case CORE_RESET:
         //prtLcd("12345678901234567890");
